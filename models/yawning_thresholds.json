@@ -1,0 +1,9 @@
+{
+  "mar_yawning_threshold": 0.3232955900442968,
+  "mar_normal_max": 0.1459407732341086,
+  "img_size": 64,
+  "class_indices": {
+    "normal": 0,
+    "yawning": 1
+  }
+}

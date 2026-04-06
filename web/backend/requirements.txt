@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+websockets
+opencv-python-headless
+mediapipe
+tensorflow==2.19.0
+numpy
+wsproto
