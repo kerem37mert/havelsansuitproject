@@ -92,8 +92,9 @@ def process_frame(frame: np.ndarray, state: FatigueState) -> dict:
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    """Webcam test endpoint — frontend webcam'den frame alır, tahmin döndürür."""
     await websocket.accept()
-    state = FatigueState()  # her bağlantı için ayrı state
+    state = FatigueState()
 
     try:
         while True:
@@ -112,3 +113,63 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         pass
+
+
+# ── Pi yayını → control sayfası köprüsü ──────────────────────────────────────
+# Pi /ws/pi'ye frame gönderir, backend işler,
+# sonucu /ws/control dinleyicilerine yayınlar.
+
+_pi_state: FatigueState = FatigueState()
+_control_clients: set[WebSocket] = set()
+
+
+async def _broadcast(message: str) -> None:
+    """Tüm control dinleyicilerine mesaj gönder; kopuk olanları temizle."""
+    dead = []
+    for client in _control_clients:
+        try:
+            await client.send_text(message)
+        except Exception:
+            dead.append(client)
+    for d in dead:
+        _control_clients.discard(d)
+
+
+@app.websocket("/ws/pi")
+async def pi_publisher(websocket: WebSocket):
+    """Raspberry Pi tek publisher — frame gönderir, sonuç broadcast edilir."""
+    await websocket.accept()
+    _pi_state.reset()
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            msg = json.loads(raw)
+
+            if msg.get("type") != "frame":
+                continue
+
+            frame = decode_frame(msg["data"])
+            if frame is None:
+                continue
+
+            response = process_frame(frame, _pi_state)
+            await _broadcast(json.dumps(response))
+
+    except WebSocketDisconnect:
+        pass
+
+
+@app.websocket("/ws/control")
+async def control_subscriber(websocket: WebSocket):
+    """Frontend control sayfası tahmin sonuçlarını dinler."""
+    await websocket.accept()
+    _control_clients.add(websocket)
+
+    try:
+        while True:
+            await websocket.receive_text()  # heartbeat / no-op
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _control_clients.discard(websocket)

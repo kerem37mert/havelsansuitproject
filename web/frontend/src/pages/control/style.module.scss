@@ -1,5 +1,110 @@
-.control {
-    margin: 2rem;
-    padding: 1rem;
-    background-color: #e0e0e0;
+.container {
+  display: flex;
+  gap: 1.5rem;
+  margin: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.camera {
+  video {
+    border: 2px solid #000;
+    border-radius: 6px;
+  }
+}
+
+.panel {
+  width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.statusBar {
+  width: 100%;
+  padding: 0.6rem 0;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.05em;
+  border-radius: 6px;
+  transition: background-color 0.4s;
+}
+
+.scoreTrack {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: #222;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.scoreFill {
+  height: 100%;
+  transition: width 0.3s, background-color 0.4s;
+}
+
+.scoreLabel {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.65rem;
+  color: #ccc;
+}
+
+.metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.metric {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+}
+
+.metricHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+  color: #eee;
+}
+
+.barTrack {
+  position: relative;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.2s, background-color 0.3s;
+}
+
+.barMark {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateX(-50%);
+}
+
+.textMetrics {
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.78rem;
+  color: #ddd;
+  margin-top: 0.25rem;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
 }
