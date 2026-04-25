@@ -38,10 +38,13 @@ const Camera = () => {
   return (
     <video
       ref={videoRef}
-      autoPlay
-      muted
-      playsInline
-      style={{ width: "400px", height: "400px", border: "2px solid black" }}
+      autoPlay muted playsInline
+      style={{
+        width: 854,
+        height: 480,
+        objectFit: "contain",
+        background: "#000",
+      }}
     />
   );
 };
