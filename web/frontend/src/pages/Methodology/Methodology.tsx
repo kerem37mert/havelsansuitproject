@@ -3,7 +3,7 @@ import classes from "./methodology.module.scss";
 const Methodology = () => {
   return (
     <div className={ classes.methodology }>
-      hsagdhasgdkafysafg
+      Daha sonra güncellenecek
     </div>
   );
 }
