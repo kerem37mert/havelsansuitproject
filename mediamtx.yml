@@ -1,0 +1,16 @@
+# MediaMTX config — Pi'den WHIP ile publish, browser'dan WHEP ile playback
+
+# WebRTC (WHIP/WHEP) endpoint
+webrtcAddress: :8889
+webrtcEncryption: no
+webrtcAllowOrigin: '*'
+
+# RTSP (Pi alternatif olarak buradan da yayınlayabilir)
+rtspAddress: :8554
+
+# HTTP API kapalı
+api: no
+
+paths:
+  camera:
+    source: publisher

@@ -5,6 +5,15 @@ services:
       dockerfile: web/backend/Dockerfile
     restart: unless-stopped
 
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      - "8554:8554"        # RTSP (Pi yayını için)
+      - "8189:8189/udp"    # WebRTC ICE
+    restart: unless-stopped
+
   nginx:
     build:
       context: .
