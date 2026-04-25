@@ -30,15 +30,6 @@ from config import LEFT_EYE, RIGHT_EYE
 RTSP_URL = os.environ.get("RTSP_URL", "rtsp://mediamtx:8554/camera")
 RTSP_INFER_FPS = 10  # saniyede kaç frame inference yapılsın
 
-# FFmpeg backend'i düşük gecikme moduna al (buffer'ı sıfıra yakın tut)
-os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = (
-    "rtsp_transport;tcp"
-    "|fflags;nobuffer"
-    "|flags;low_delay"
-    "|max_delay;0"
-    "|reorder_queue_size;0"
-)
-
 
 # ── Lifespan: RTSP reader thread'i başlat/durdur ─────────────────────────────
 
