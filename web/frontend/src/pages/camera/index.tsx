@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const WHEP_URL = "https://havelsansuit.dev/whip/kamera";
+const WHEP_URL = "https://api.havelsansuitproject.dev/camera/whep";
 
 const Camera = () => {
   const videoRef = useRef(null);
