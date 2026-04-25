@@ -17,7 +17,9 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
+            set -e
             cd ~/havelsansuitproject
             git pull origin main
-            sudo docker compose up --build -d
+            sudo docker compose build
+            sudo docker compose up -d
             sudo docker image prune -f
