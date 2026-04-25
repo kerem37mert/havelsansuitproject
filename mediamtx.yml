@@ -5,6 +5,13 @@ webrtcAddress: :8889
 webrtcEncryption: no
 webrtcAllowOrigin: '*'
 
+# Container içindeki internal IP yerine VM'in public IP'sini ICE candidate olarak ilan et
+webrtcAdditionalHosts:
+  - 34.28.199.163
+
+# ICE UDP portu — Docker'da expose edilen porta sabitle
+webrtcLocalUDPAddress: :8189
+
 # RTSP (Pi alternatif olarak buradan da yayınlayabilir)
 rtspAddress: :8554
 
