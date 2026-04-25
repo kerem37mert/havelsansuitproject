@@ -6,8 +6,13 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 sys.path.insert(0, PROJECT_ROOT)
 os.chdir(PROJECT_ROOT)  # relative yolların çözümlenmesi için
 
+import asyncio
 import base64
 import json
+import threading
+import time
+from contextlib import asynccontextmanager
+
 import numpy as np
 import cv2
 import mediapipe as mp
@@ -22,7 +27,65 @@ from models import infer_eye, infer_yawn
 from fusion import FatigueState
 from config import LEFT_EYE, RIGHT_EYE
 
-app = FastAPI()
+RTSP_URL = os.environ.get("RTSP_URL", "rtsp://mediamtx:8554/camera")
+RTSP_INFER_FPS = 10  # saniyede kaç frame inference yapılsın
+
+
+# ── Lifespan: RTSP reader thread'i başlat/durdur ─────────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    loop = asyncio.get_event_loop()
+    stop_event = threading.Event()
+    thread = threading.Thread(target=_rtsp_reader_loop, args=(loop, stop_event), daemon=True)
+    thread.start()
+    print(f"RTSP reader başlatıldı: {RTSP_URL}")
+    try:
+        yield
+    finally:
+        stop_event.set()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+def _rtsp_reader_loop(loop: asyncio.AbstractEventLoop, stop_event: threading.Event):
+    """
+    Arka planda çalışan thread:
+    - MediaMTX'ten RTSP yayınını çeker
+    - Her frame'i process_frame'den geçirir
+    - Sonucu /ws/control dinleyicilerine broadcast eder
+
+    Yayın kopması durumunda yeniden bağlanmayı dener.
+    """
+    interval = 1.0 / RTSP_INFER_FPS
+
+    while not stop_event.is_set():
+        cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
+        if not cap.isOpened():
+            print(f"RTSP açılamadı, 3sn sonra tekrar deneniyor: {RTSP_URL}")
+            time.sleep(3)
+            continue
+
+        print("RTSP bağlandı.")
+        _pi_state.reset()
+        last_infer = 0.0
+
+        while not stop_event.is_set():
+            ret, frame = cap.read()
+            if not ret:
+                print("RTSP frame okunamadı, yeniden bağlanılıyor.")
+                break
+
+            now = time.time()
+            if now - last_infer < interval:
+                continue
+            last_infer = now
+
+            response = process_frame(frame, _pi_state)
+            asyncio.run_coroutine_threadsafe(_broadcast(json.dumps(response)), loop)
+
+        cap.release()
 
 
 def decode_frame(data_url: str) -> np.ndarray | None:
@@ -115,9 +178,9 @@ async def websocket_endpoint(websocket: WebSocket):
         pass
 
 
-# ── Pi yayını → control sayfası köprüsü ──────────────────────────────────────
-# Pi /ws/pi'ye frame gönderir, backend işler,
-# sonucu /ws/control dinleyicilerine yayınlar.
+# ── MediaMTX RTSP yayını → control sayfası köprüsü ───────────────────────────
+# Backend, Pi'nin yayınını MediaMTX'ten RTSP olarak çeker, modeli çalıştırır,
+# sonucu /ws/control dinleyicilerine broadcast eder.
 
 _pi_state: FatigueState = FatigueState()
 _control_clients: set[WebSocket] = set()
@@ -133,31 +196,6 @@ async def _broadcast(message: str) -> None:
             dead.append(client)
     for d in dead:
         _control_clients.discard(d)
-
-
-@app.websocket("/ws/pi")
-async def pi_publisher(websocket: WebSocket):
-    """Raspberry Pi tek publisher — frame gönderir, sonuç broadcast edilir."""
-    await websocket.accept()
-    _pi_state.reset()
-
-    try:
-        while True:
-            raw = await websocket.receive_text()
-            msg = json.loads(raw)
-
-            if msg.get("type") != "frame":
-                continue
-
-            frame = decode_frame(msg["data"])
-            if frame is None:
-                continue
-
-            response = process_frame(frame, _pi_state)
-            await _broadcast(json.dumps(response))
-
-    except WebSocketDisconnect:
-        pass
 
 
 @app.websocket("/ws/control")
