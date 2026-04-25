@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import classes from "./style.module.scss";
 
 const WHEP_URL = "https://api.havelsansuitproject.dev/camera/whep";
 
@@ -36,16 +37,20 @@ const Camera = () => {
   }, []);
 
   return (
-    <video
-      ref={videoRef}
-      autoPlay muted playsInline
-      style={{
-        width: 854,
-        height: 480,
-        objectFit: "contain",
-        background: "#000",
-      }}
-    />
+    <div
+      className={classes.camera}
+    >
+      <video
+        ref={videoRef}
+        autoPlay muted playsInline
+        style={{
+          width: 854,
+          height: 480,
+          objectFit: "contain",
+          background: "#000",
+        }}
+      />
+    </div>
   );
 };
 

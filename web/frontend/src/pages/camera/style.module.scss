@@ -1,0 +1,9 @@
+.camera {
+  display: flex;
+  justify-content: center;
+  margin: 2rem;
+
+  video {
+    border: 2px solid #000;
+  }
+}
