@@ -1,6 +1,6 @@
 import Video from "../../components/Video";
 
-const Home = () => {
+const Webcam = () => {
     return(
         <>
             <Video />
@@ -8,4 +8,4 @@ const Home = () => {
     );
 }
 
-export default Home;
+export default Webcam;
