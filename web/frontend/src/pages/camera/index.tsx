@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 const WHEP_URL = "https://api.havelsansuitproject.dev/camera/whep";
 
 const Camera = () => {
-  const videoRef = useRef(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const pc = new RTCPeerConnection({
@@ -24,7 +24,7 @@ const Camera = () => {
         fetch(WHEP_URL, {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
-          body: pc.localDescription.sdp,
+          body: pc.localDescription?.sdp,
         })
       )
       .then((res) => res.text())
