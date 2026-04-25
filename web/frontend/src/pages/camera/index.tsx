@@ -41,7 +41,7 @@ const Camera = () => {
       autoPlay
       muted
       playsInline
-      style={{ width: "100%", height: "100%" }}
+      style={{ width: "400px", height: "400px" }}
     />
   );
 };
