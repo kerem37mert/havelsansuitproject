@@ -37,8 +37,8 @@ RTSP_INFER_FPS = 10  # saniyede kaç frame inference yapılsın
 async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
     stop_event = threading.Event()
-    threading.Thread(target=_rtsp_grabber,        args=(stop_event,),       daemon=True).start()
-    threading.Thread(target=_rtsp_inference_loop, args=(loop, stop_event),  daemon=True).start()
+    thread = threading.Thread(target=_rtsp_reader_loop, args=(loop, stop_event), daemon=True)
+    thread.start()
     print(f"RTSP reader başlatıldı: {RTSP_URL}")
     try:
         yield
@@ -49,65 +49,43 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-_latest_frame: tuple[float, np.ndarray] | None = None
-_latest_lock = threading.Lock()
-
-
-def _rtsp_grabber(stop_event: threading.Event):
+def _rtsp_reader_loop(loop: asyncio.AbstractEventLoop, stop_event: threading.Event):
     """
-    Arka thread: RTSP'ten frame'leri olabildiğince hızlı okur,
-    sadece EN SON frame'i belleğe yazar. Böylece buffer dolup
-    geriden gelen kareleri işlemeyiz.
+    Arka planda çalışan thread:
+    - MediaMTX'ten RTSP yayınını çeker
+    - Her frame'i process_frame'den geçirir
+    - Sonucu /ws/control dinleyicilerine broadcast eder
+
+    Yayın kopması durumunda yeniden bağlanmayı dener.
     """
-    global _latest_frame
+    interval = 1.0 / RTSP_INFER_FPS
 
     while not stop_event.is_set():
         cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
         if not cap.isOpened():
-            print(f"RTSP açılamadı, 3sn sonra tekrar: {RTSP_URL}")
+            print(f"RTSP açılamadı, 3sn sonra tekrar deneniyor: {RTSP_URL}")
             time.sleep(3)
             continue
 
-        print("RTSP grabber bağlandı.")
+        print("RTSP bağlandı.")
+        _pi_state.reset()
+        last_infer = 0.0
+
         while not stop_event.is_set():
             ret, frame = cap.read()
             if not ret:
                 print("RTSP frame okunamadı, yeniden bağlanılıyor.")
                 break
-            with _latest_lock:
-                _latest_frame = (time.time(), frame)
+
+            now = time.time()
+            if now - last_infer < interval:
+                continue
+            last_infer = now
+
+            response = process_frame(frame, _pi_state)
+            asyncio.run_coroutine_threadsafe(_broadcast(json.dumps(response)), loop)
 
         cap.release()
-
-
-def _rtsp_inference_loop(loop: asyncio.AbstractEventLoop, stop_event: threading.Event):
-    """
-    Inference thread: en son frame'i alır, modeli çalıştırır,
-    sonucu broadcast eder. Inference süresi ne olursa olsun
-    her zaman taze frame işlenir.
-    """
-    interval = 1.0 / RTSP_INFER_FPS
-    last_ts = 0.0
-    _pi_state.reset()
-
-    while not stop_event.is_set():
-        time.sleep(interval)
-
-        with _latest_lock:
-            snapshot = _latest_frame
-
-        if snapshot is None:
-            continue
-
-        ts, frame = snapshot
-        if ts == last_ts:
-            continue   # aynı frame'i tekrar işleme
-        last_ts = ts
-
-        response = process_frame(frame, _pi_state)
-        asyncio.run_coroutine_threadsafe(_broadcast(json.dumps(response)), loop)
 
 
 def decode_frame(data_url: str) -> np.ndarray | None:
