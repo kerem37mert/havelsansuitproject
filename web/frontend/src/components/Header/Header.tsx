@@ -10,7 +10,7 @@ const Header = ({ title }: HeaderProps) => {
         <Link className={ classes["menu-link"] } to={"/"} >Ana Sayfa</Link>
         <Link className={ classes["menu-link"]} to={"/methodology"} >Yöntem</Link>
         <Link className={ classes["menu-link"]} to={"/test"} >WebCam Test</Link>
-        <Link className={ classes["menu-link"]} to={"/camera"} >Kamera</Link>
+        {/* <Link className={ classes["menu-link"]} to={"/camera"} >Kamera</Link> */}
       </div>
     </div>
   );

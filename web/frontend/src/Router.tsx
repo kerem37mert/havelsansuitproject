@@ -13,7 +13,7 @@ const Router = () => {
         <Route index element={ <Control /> } />
         <Route path="/methodology" element={ <Methodology /> } />
         <Route path="/test" element={ <Webcam /> } />
-        {/* <Route path="/camera" element={ <Camera /> } /> */}
+        <Route path="/camera" element={ <Camera /> } />
       </Routes>
     </BrowserRouter>
   );
