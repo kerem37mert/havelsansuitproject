@@ -41,14 +41,9 @@ const Video = () => {
     setWsStatus("connecting");
 
     const sendNextFrame = () => {
-      if (ws.readyState !== WebSocket.OPEN) return;
-
       const imageSrc = webcamRef.current?.getScreenshot();
-      if (imageSrc) {
+      if (imageSrc && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "frame", data: imageSrc }));
-      } else {
-        // webcam henüz hazır değil; chain'i kırma, kısa süre sonra tekrar dene
-        setTimeout(sendNextFrame, 100);
       }
     };
 
