@@ -32,6 +32,7 @@ const Video = () => {
 
   const [isShowLandmarks, setIsShowLandmarks] = useState(false);
   const [result, setResult] = useState<FrameResult | null>(null);
+  const latestResultRef = useRef<FrameResult | null>(null);
   const [wsStatus, setWsStatus] = useState<WsStatus>("connecting");
 
   const connectWS = () => {
@@ -45,8 +46,13 @@ const Video = () => {
 
       const intervalId = window.setInterval(() => {
         const imageSrc = webcamRef.current?.getScreenshot();
+
         if (imageSrc && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: "frame", data: imageSrc }));
+        }
+
+        if (latestResultRef.current) {
+          setResult(latestResultRef.current);
         }
       }, 100);
 
@@ -58,7 +64,7 @@ const Video = () => {
     };
 
     ws.onmessage = (event) => {
-      setResult(JSON.parse(event.data));
+      latestResultRef.current = JSON.parse(event.data);
     };
 
     ws.onerror = () => {
