@@ -29,15 +29,12 @@ const LEVEL_CONFIG = [
 const Video = () => {
   const webcamRef = useRef<Webcam | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const latestResultRef = useRef<FrameResult | null>(null);
 
   const [isShowLandmarks, setIsShowLandmarks] = useState(false);
   const [result, setResult] = useState<FrameResult | null>(null);
   const [wsStatus, setWsStatus] = useState<WsStatus>("connecting");
 
   const connectWS = () => {
-    wsRef.current?.close();
-
     const ws = new WebSocket(import.meta.env.VITE_WS_URL);
     wsRef.current = ws;
 
@@ -46,34 +43,26 @@ const Video = () => {
     ws.onopen = () => {
       setWsStatus("connected");
 
-      const sendInterval = window.setInterval(() => {
+      const intervalId = window.setInterval(() => {
         const imageSrc = webcamRef.current?.getScreenshot();
-
         if (imageSrc && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: "frame", data: imageSrc }));
         }
       }, 100);
 
-      const renderInterval = window.setInterval(() => {
-        if (latestResultRef.current) {
-          setResult(latestResultRef.current);
-        }
-      }, 100);
-
+      // önemli: close olunca interval temizle
       ws.onclose = () => {
-        clearInterval(sendInterval);
-        clearInterval(renderInterval);
+        clearInterval(intervalId);
         setWsStatus("disconnected");
       };
     };
 
     ws.onmessage = (event) => {
-      latestResultRef.current = JSON.parse(event.data);
+      setResult(JSON.parse(event.data));
     };
 
     ws.onerror = () => {
       setWsStatus("disconnected");
-      ws.close();
     };
   };
 
@@ -90,13 +79,14 @@ const Video = () => {
   const score = result?.ema_score ?? 0;
 
   const statusLabel = !result
-    ? "Sonuç Bekleniyor..."
+    ? cfg.label
     : result.face_found === false
       ? "Yüz Bulunamadı"
       : cfg.label;
 
   return (
     <div className={classes["video-container"]}>
+      {/* Durum başlığı */}
       <div
         className={classes["status-bar"]}
         style={{ backgroundColor: cfg.color }}
@@ -104,16 +94,16 @@ const Video = () => {
         {statusLabel}
       </div>
 
+      {/* Skor çubuğu */}
       <div className={classes["score-track"]}>
         <div
           className={classes["score-fill"]}
           style={{ width: `${score}%`, backgroundColor: cfg.color }}
         />
-        <span className={classes["score-label"]}>
-          {score.toFixed(1)} / 100
-        </span>
+        <span className={classes["score-label"]}>{score} / 100</span>
       </div>
 
+      {/* Webcam + overlay */}
       <div className={classes["cam-wrapper"]}>
         <Webcam
           audio={false}
@@ -151,18 +141,17 @@ const Video = () => {
 
         {wsStatus !== "connected" && (
           <div className={classes["cam-overlay"]}>
-            {wsStatus === "connecting" ? (
-              "Sunucuya bağlanılıyor..."
-            ) : (
-              <div>
-                <div>Bağlantı Kesildi</div>
-                <button onClick={connectWS}>Yeniden Bağlan</button>
-              </div>
-            )}
+            {wsStatus === "connecting"
+              ? "Sunucuya bağlanılıyor..."
+              : (<div>
+                  <div>Bağlantı Kesildi</div>
+                  <button onClick={connectWS}>Yeniden Bağlan</button>
+                </div>)}
           </div>
         )}
       </div>
 
+      {/* Metrik paneli */}
       {result && wsStatus === "connected" && (
         <div className={classes["metrics"]}>
           <Metric
@@ -174,7 +163,6 @@ const Video = () => {
             alert={40}
             highlight={result.perclos > 25}
           />
-
           <Metric
             label="Esneme"
             value={result.smooth_yawn}
@@ -183,7 +171,6 @@ const Video = () => {
             warn={55}
             highlight={result.yawn_drowsy}
           />
-
           <Metric
             label="Baş Pitch"
             value={Math.abs(result.pitch)}
@@ -199,18 +186,16 @@ const Video = () => {
               Pitch:{" "}
               <b>
                 {result.pitch > 0 ? "+" : ""}
-                {result.pitch.toFixed(1)}°
+                {result.pitch}°
               </b>
             </span>
-
             <span>
               Yaw:{" "}
               <b>
                 {result.yaw > 0 ? "+" : ""}
-                {result.yaw.toFixed(1)}°
+                {result.yaw}°
               </b>
             </span>
-
             <span style={{ color: result.eye_streak ? "#d50000" : "#00c853" }}>
               Microsleep: <b>{result.eye_streak ? "EVET" : "Yok"}</b>
             </span>
@@ -218,6 +203,7 @@ const Video = () => {
         </div>
       )}
 
+      {/* Landmark toggle */}
       <label className={classes["landmark-toggle"]}>
         <input
           type="checkbox"
@@ -250,7 +236,6 @@ const Metric = ({
   highlight,
 }: MetricProps) => {
   const pct = Math.min(value / max, 1) * 100;
-
   const color = highlight
     ? alert !== undefined && value >= alert
       ? "#d50000"
@@ -266,20 +251,17 @@ const Metric = ({
           {unit}
         </span>
       </div>
-
       <div className={classes["bar-track"]}>
         <div
           className={classes["bar-fill"]}
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
-
         {warn !== undefined && (
           <div
             className={classes["bar-mark"]}
             style={{ left: `${(warn / max) * 100}%` }}
           />
         )}
-
         {alert !== undefined && (
           <div
             className={classes["bar-mark"]}
