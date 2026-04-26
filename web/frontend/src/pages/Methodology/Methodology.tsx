@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import classes from "./methodology.module.scss";
 
 const Methodology = () => {
@@ -13,7 +14,7 @@ const Methodology = () => {
 
   return (
     <div className={ classes.methodology }>
-      <ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
         {content}
       </ReactMarkdown>
     </div>

@@ -16,7 +16,8 @@
     "react-konva": "^19.2.1",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.12.0",
-    "react-webcam": "^7.2.0"
+    "react-webcam": "^7.2.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
