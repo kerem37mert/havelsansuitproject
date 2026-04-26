@@ -69,7 +69,7 @@ const Control = () => {
   const score = result?.ema_score ?? 0;
 
   const statusLabel = !result
-    ? "Bekleniyor..."
+    ? "Raspberry Pi Bekleniyor..."
     : !result.face_found
       ? "Yüz Bulunamadı"
       : cfg.label;
