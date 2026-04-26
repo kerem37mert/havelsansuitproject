@@ -40,27 +40,25 @@ const Video = () => {
 
     setWsStatus("connecting");
 
-    const sendNextFrame = () => {
-      const imageSrc = webcamRef.current?.getScreenshot();
-      if (imageSrc && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "frame", data: imageSrc }));
-      }
-    };
-
     ws.onopen = () => {
       setWsStatus("connected");
-      sendNextFrame(); // ilk frame'i gönder, sonrası onmessage zincirinden gelir
 
+      const intervalId = window.setInterval(() => {
+        const imageSrc = webcamRef.current?.getScreenshot();
+        if (imageSrc && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "frame", data: imageSrc }));
+        }
+      }, 100);
+
+      // önemli: close olunca interval temizle
       ws.onclose = () => {
+        clearInterval(intervalId);
         setWsStatus("disconnected");
       };
     };
 
-    // Response-driven: backend cevabı geldiğinde bir sonraki frame'i yolla.
-    // Böylece kuyruk birikmez, sistem backend hızında çalışır.
     ws.onmessage = (event) => {
       setResult(JSON.parse(event.data));
-      sendNextFrame();
     };
 
     ws.onerror = () => {

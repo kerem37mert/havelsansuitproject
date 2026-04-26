@@ -51,34 +51,36 @@ app = FastAPI(lifespan=lifespan)
 
 def _rtsp_reader_loop(loop: asyncio.AbstractEventLoop, stop_event: threading.Event):
     """
-    MediaMTX RTSP yayınını çeker, modeli çalıştırır,
-    sonucu /ws/control dinleyicilerine broadcast eder.
+    Arka planda çalışan thread:
+    - MediaMTX'ten RTSP yayınını çeker
+    - Her frame'i process_frame'den geçirir
+    - Sonucu /ws/control dinleyicilerine broadcast eder
 
-    Response-driven: her inference'ten sonra buffer'da biriken
-    eski frame'leri grab() ile çöpe atıp en son frame'i alır.
-    Böylece buffer dolup sistem geriden gelmez.
+    Yayın kopması durumunda yeniden bağlanmayı dener.
     """
+    interval = 1.0 / RTSP_INFER_FPS
+
     while not stop_event.is_set():
         cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not cap.isOpened():
-            print(f"RTSP açılamadı, 3sn sonra tekrar: {RTSP_URL}")
+            print(f"RTSP açılamadı, 3sn sonra tekrar deneniyor: {RTSP_URL}")
             time.sleep(3)
             continue
 
         print("RTSP bağlandı.")
         _pi_state.reset()
+        last_infer = 0.0
 
         while not stop_event.is_set():
-            # Buffer'da biriken eski frame'leri at, sadece sonuncuyu işle
-            for _ in range(4):
-                if not cap.grab():
-                    break
-
-            ret, frame = cap.retrieve()
+            ret, frame = cap.read()
             if not ret:
                 print("RTSP frame okunamadı, yeniden bağlanılıyor.")
                 break
+
+            now = time.time()
+            if now - last_infer < interval:
+                continue
+            last_infer = now
 
             response = process_frame(frame, _pi_state)
             asyncio.run_coroutine_threadsafe(_broadcast(json.dumps(response)), loop)
